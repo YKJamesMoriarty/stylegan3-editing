@@ -8,10 +8,16 @@ from utils.common import get_identity_transform
 
 
 class InferenceDataset(Dataset):
-
+    '''root 参数是由 --data_path 提供的路径
+    landmarks_transforms_path：这是可选参数，存储面部特征点变换（landmarks transforms）的路径。如果给定，它会加载和应用这些变换
+    transform：这是对图像应用的变换（例如，归一化、裁剪等）
+    '''
     def __init__(self, root: Path, landmarks_transforms_path: Path = None, transform=None):
+        #读取root路径下所有的图片文件。
         self.paths = sorted(data_utils.make_dataset(root))
+        #调用内部函数 _get_landmarks_transforms 读取特征点变换，并将其保存
         self.landmarks_transforms = self._get_landmarks_transforms(landmarks_transforms_path)
+        #self.transform：这个变量存储传入的图像变换函数（例如 transforms.Compose）。
         self.transform = transform
 
     def __len__(self):

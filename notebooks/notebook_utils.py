@@ -69,35 +69,67 @@ def download_dlib_models():
 
 
 def run_alignment(image_path):
+    #确保使用 dlib 的面部标志检测模型（shape_predictor_68_face_landmarks.dat）已经下载并准备好
     download_dlib_models()
+    #predictor：任务是找到图像中人脸的大致位置，会返回一个矩形框
     predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
+    #detector：在 detector 检测到的人脸区域中，进一步精确预测面部关键点的位置，总共有 68 个标准点
     detector = dlib.get_frontal_face_detector()
     print("Aligning image...")
+    #使用上述的面部检测器（detector）和面部标志预测器（predictor）对图像中的面部进行对齐，确保面部朝向标准化。
     aligned_image = align_face(filepath=str(image_path), detector=detector, predictor=predictor)
     print(f"Finished aligning image: {image_path}")
     return aligned_image
 
-
+'''
+#作用：对输入的图像进行面部裁剪，使用 dlib 库中的面部检测器和面部关键点预测模型
+'''
 def crop_image(image_path):
-    download_dlib_models()
+    download_dlib_models()#这个函数确保面部检测所需的模型文件已被下载到本地。如果模型未下载，函数会下载必要的文件
+    '''这个语句加载了基于 dlib 的面部关键点预测器。shape_predictor 通过读取 .dat 文件，
+    可以在图像中标注出 68 个面部关键点，用于进一步的面部区域处理。'''
     predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
+    '''get_frontal_face_detector是一个预训练的正面人脸检测器，dlib 提供了这个工具，用于
+    识别图像中的正面人脸。它会返回一组检测到的面部矩形区域，用于进一步处理'''
     detector = dlib.get_frontal_face_detector()
     print("Cropping image...")
+    '''crop_face 是实际执行面部裁剪的函数，它将图像路径、面部检测器和面部标志预测器作为输入。
+    --crop_face 是实际执行面部裁剪的函数，它将图像路径、面部检测器和面部标志预测器作为输入。
+    --它首先使用 detector 来检测图像中的面部区域。
+    --然后，使用 predictor 来定位面部中的关键点（如眼睛、鼻子等），确定精确的面部轮廓。
+    --根据这些信息，裁剪出图像中的面部部分，并返回裁剪后的图像'''
     cropped_image = crop_face(filepath=str(image_path), detector=detector, predictor=predictor)
     print(f"Finished cropping image: {image_path}")
-    return cropped_image
+    return cropped_image#返回裁剪后的图像
 
-
+'''
+compute_transforms函数的主要目的是通过检测面部关键点，计算从裁剪后的面部图像到对齐后的面部图像之间的转换矩阵'''
 def compute_transforms(aligned_path, cropped_path):
     download_dlib_models()
+    #加载 dlib 提供的 68 个面部关键点检测器模型。这个模型会在面部图像中定位眼睛、鼻子、嘴巴等关键点
     predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
+    #初始化正面人脸检测器，它用于检测输入图像中是否存在人脸，并返回面部的矩形区域。
     detector = dlib.get_frontal_face_detector()
     print("Computing landmarks-based transforms...")
+    '''get_stylegan_transform 函数是一个核心函数，它处理两个输入图像，计算它们之间的转换矩阵。 
+    参数：
+    cropped_path: 裁剪后图像的路径。
+    aligned_path: 对齐后图像的路径。
+    detector: 人脸检测器，用于定位人脸区域。
+    predictor: 面部关键点预测器，用于检测面部关键点。
+    get_stylegan_transform 函数会比较裁剪图像与对齐图像的关键点位置，通过这些位置计算出图像的变换参数，
+    比如旋转角度、平移量、以及变换矩阵。这些变换能够将裁剪后的面部与对齐后的面部图像对齐。
+    '''
     res = get_stylegan_transform(str(cropped_path), str(aligned_path), detector, predictor)
     print("Done!")
     if res is None:
         print(f"Failed computing transforms on: {cropped_path}")
         return
     else:
+        '''res 是 get_stylegan_transform 返回的结果，包含四个部分：
+        rotation_angle: 图像的旋转角度。
+        translation: 图像的平移参数。
+        transform: 图像的变换矩阵。
+        inverse_transform: 图像的逆变换矩阵。'''
         rotation_angle, translation, transform, inverse_transform = res
         return inverse_transform

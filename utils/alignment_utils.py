@@ -145,17 +145,28 @@ def crop_face_by_transform(filepath: str, quad: np.ndarray, qsize: int, output_s
 
 
 def align_face(filepath: str, detector, predictor):
+    #获取对齐位置
+    '''c：通常是一个基于面部关键点的中心点，表示人脸在图像中的中心位置。
+    x, y：表示人脸中某些特定关键点的位置（如眼睛、嘴巴等）。这些位置是对齐过程中调整面部姿态的重要参考。'''
     c, x, y = get_alignment_positions(filepath, detector, predictor)
+    #计算对齐的变换矩阵：根据获得的 c, x, y 值，计算出变换矩阵 quad和对齐后的图像大小 qsize
+    '''quad：是图像的四边形顶点坐标，表示图像需要如何旋转、缩放、平移才能对齐。通过这些坐标，可以把原图转换为一个面部朝向标准化的图像。
+    qsize：是对齐后的图像尺寸，通常表示对齐后图像的大小。这是为了确保输出图像符合特定大小要求'''
     quad, qsize = get_alignment_transformation(c, x, y)
+    #基于前面计算得到的 quad 和 qsize，对输入图像进行裁剪并应用变换得到新图像img
     img = crop_face_by_transform(filepath, quad, qsize)
     return img
 
 
 def crop_face(filepath: str, detector, predictor, random_shift=0.0):
+    #获取对齐位置
     c, x, y = get_alignment_positions(filepath, detector, predictor)
     if random_shift > 0:
         c = (c + np.hypot(*x) * 2 * random_shift * np.random.normal(0, 1, c.shape))
+    
+
     quad, qsize = get_fixed_cropping_transformation(c, x)
+    #基于前面计算得到的 quad 和 qsize，对输入图像进行裁剪并应用变换得到新图像img
     img = crop_face_by_transform(filepath, quad, qsize)
     return img
 
